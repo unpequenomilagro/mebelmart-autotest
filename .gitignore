@@ -1,0 +1,36 @@
+# Virtual environment
+venv/
+env/
+ENV/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Allure reports
+allure-report/
+allure-results/
+
+# Screenshots
+screenshots/
+*.png
+*.html
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Webdriver cache
+.wdm/
+
+# Downloads
+packages/
+*.whl
