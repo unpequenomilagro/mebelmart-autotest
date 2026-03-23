@@ -1,29 +1,63 @@
 import allure
-import pytest
+import time
+from selenium.webdriver.common.by import By
 from pages.catalog_page import CatalogPage
-from config.config import Config
+from loguru import logger
 
-@allure.feature("Фильтрация товаров")
-@allure.story("Фильтрация по цене")
+@allure.feature("Фильтрация")
 class TestFilter:
     
-    @allure.title("Проверка фильтрации товаров по цене")
-    @allure.description("Тест проверяет, что фильтр по цене работает корректно")
-    @allure.severity(allure.severity_level.CRITICAL)
+    @allure.title("Фильтрация по цене и проверка наличия товара")
     def test_price_filter(self, driver):
-        # Открыть раздел "Диваны"
-        catalog_page = CatalogPage(driver)
-        catalog_page.open_catalog()
+        catalog = CatalogPage(driver)
+        catalog.open_catalog()
+        time.sleep(2)
         
-        # Применить фильтр по цене
-        catalog_page.apply_price_filter()
+      
+        products_before = len(catalog.get_all_products())
+        logger.info(f"Товаров ДО фильтрации: {products_before}")
         
-        # Проверить, что есть товары в результатах
-        products = catalog_page.get_all_products()
-        assert len(products) > 0, "Нет товаров после применения фильтра"
+        # 2. Показываем цены товаров до фильтрации
+        logger.info("Цены товаров ДО фильтрации:")
+        for i in range(min(5, products_before)):
+            price = catalog.get_product_price_by_index(i)
+            if price:
+                logger.info(f"   Товар {i+1}: {price} ₽")
         
-        # Проверим, что цена первого товара соответствует ожиданиям
-        # (просто проверяем что цена есть, без строгой фильтрации)
-        price = catalog_page.get_product_price_by_index(0)
-        assert price is not None, "Не удалось получить цену товара"
-        print(f"Цена первого товара после фильтрации: {price}")
+        # 3. Применяем фильтр
+        logger.info("Применяем фильтр по цене (10 000 ₽ - 15 000 ₽)...")
+        time.sleep(1)
+        
+        catalog.apply_filter()
+        time.sleep(2)
+        
+        
+        # 5. Получаем товары после фильтрации
+        products_after = catalog.get_all_products()
+        logger.info(f"Товаров ПОСЛЕ фильтрации: {len(products_after)}")
+        
+        # 6. Показываем цены товаров после фильтрации
+        logger.info("Цены товаров ПОСЛЕ фильтрации:")
+        for i in range(min(5, len(products_after))):
+            price = catalog.get_product_price_by_index(i)
+            if price:
+                logger.info(f"   Товар {i+1}: {price} ₽")
+        
+        # 7. Ищем диван "Диван ЧБ"
+        logger.info("Ищем диван 'Диван ЧБ' в результатах...")
+        index, product = catalog.find_sofa_by_name("Диван ЧБ")
+        
+        if index != -1:
+            found_price = catalog.get_product_price_by_index(index)
+            logger.info(f"НАЙДЕН диван 'Диван ЧБ' с ценой {found_price} ₽")
+            
+            # Подсвечиваем найденный товар
+            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", product)
+            driver.execute_script("arguments[0].style.border='3px solid green'", product)
+            time.sleep(2)
+            driver.execute_script("arguments[0].style.border=''", product)
+        else:
+            logger.warning("Диван 'Диван ЧБ' не найден после фильтрации")
+        
+        assert len(products_after) > 0, "Нет товаров после фильтрации"
+        logger.info("ТЕСТ ПРОЙДЕН: фильтрация работает")

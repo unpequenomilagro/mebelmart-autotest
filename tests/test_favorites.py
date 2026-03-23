@@ -1,51 +1,32 @@
 import allure
-import pytest
-from selenium.webdriver.common.by import By
 from pages.catalog_page import CatalogPage
 from pages.favorites_page import FavoritesPage
+from loguru import logger
 import time
 
 @allure.feature("Избранное")
-@allure.story("Добавление в избранное")
 class TestFavorites:
     
     @allure.title("Добавление товара в избранное")
-    @allure.description("Тест проверяет добавление товара в избранное")
-    @allure.severity(allure.severity_level.CRITICAL)
     def test_add_to_favorites(self, driver):
-        # Открыть раздел "Диваны"
-        catalog_page = CatalogPage(driver)
-        catalog_page.open_catalog()
+        catalog = CatalogPage(driver)
+        catalog.open_catalog()
         
-        # Найти диван "Диван ЧБ"
-        products = catalog_page.get_all_products()
-        found_index = -1
+        index, _ = catalog.find_sofa_by_name("Диван ЧБ")
+        assert index != -1, "Диван не найден"
         
-        for i, product in enumerate(products):
-            try:
-                title_elem = product.find_element(By.CSS_SELECTOR, ".product-card__name a")
-                title = title_elem.text.strip()
-                if "чб" in title.lower():
-                    found_index = i
-                    product_name = title
-                    break
-            except:
-                continue
+        catalog_name = catalog.get_product_title_by_index(index)
+        logger.info(f"Найден товар: {catalog_name}")
         
-        assert found_index != -1, "Диван ЧБ не найден в каталоге"
-        print(f"Найден диван: {product_name}")
+        catalog.add_to_favorites(index)
+        logger.info("Товар добавлен в избранное")
+        time.sleep(1)
         
-        # Добавить найденный диван в избранное
-        favorites_btn = products[found_index].find_element(By.CSS_SELECTOR, ".favorite-icon")
-        favorites_btn.click()
-        print("Товар добавлен в избранное")
-        time.sleep(2)
+        catalog.go_to_favorites()
+        logger.info("Переход в избранное")
+        time.sleep(1)
         
-        # Перейти в избранное по прямому URL
-        driver.get("https://mebelmart-saratov.ru/favorite/")
-        time.sleep(3)
-        
-        # Проверить, что товар в избранном
-        page_text = driver.find_element(By.TAG_NAME, "body").text
-        assert "ЧБ" in page_text or "Чебурашка" in page_text, "Товар не найден в избранном"
-        print("✅ Товар найден в избранном")
+        favorites = FavoritesPage(driver)
+        # Проверяем по названию, которое отображается на странице избранного
+        assert favorites.is_product_in_favorites("Чебурашка"), f"Товар 'Чебурашка' не в избранном"
+        logger.info("Тест пройден: товар в избранном")

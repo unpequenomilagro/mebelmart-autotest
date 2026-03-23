@@ -1,9 +1,8 @@
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from selenium.common.exceptions import TimeoutException
 from config.config import Config
-from utils.allure_helper import AllureHelper
 from loguru import logger
 import allure
 import time
@@ -17,101 +16,55 @@ class BasePage:
     
     def open(self, url):
         """Открыть страницу"""
-        logger.info(f"Открываем страницу: {url}")
-        with allure.step(f"Открыть страницу: {url}"):
+        logger.info(f"Открываем: {url}")
+        with allure.step(f"Открыть {url}"):
             self.driver.get(url)
+            self.wait_for_page_load()
             self.close_cookie_banner()
     
-    @allure.step("Закрыть баннер с cookies")
+    def wait_for_page_load(self, timeout=10):
+        """Ожидание загрузки страницы"""
+        WebDriverWait(self.driver, timeout).until(
+            lambda d: d.execute_script("return document.readyState") == "complete"
+        )
+    
     def close_cookie_banner(self):
-        """Закрыть баннер с cookies, если он появился"""
+        """Закрыть баннер с cookies"""
         try:
-            cookie_accept_btn = (By.XPATH, "//button[contains(text(), 'Принять') or contains(text(), 'Согласен')]")
-            if self.is_element_present(cookie_accept_btn, timeout=2):
-                self.click(cookie_accept_btn)
+            cookie_btn = (By.XPATH, "//button[contains(text(), 'Принять')]")
+            if self.is_element_present(cookie_btn, timeout=2):
+                self.click(cookie_btn)
                 logger.info("Cookie баннер закрыт")
-                time.sleep(0.5)
-                return True
-        except Exception as e:
-            logger.debug(f"Не удалось закрыть cookie баннер: {e}")
-        return False
-    
-    def find_element(self, locator: tuple, timeout=Config.EXPLICIT_WAIT):
-        """Найти элемент с явным ожиданием"""
-        try:
-            element = WebDriverWait(self.driver, timeout).until(
-                EC.presence_of_element_located(locator)
-            )
-            return element
-        except TimeoutException:
-            logger.error(f"Элемент не найден: {locator}")
-            AllureHelper.attach_screenshot(self.driver, "Ошибка_поиска_элемента")
-            raise
-    
-    def find_elements(self, locator: tuple, timeout=Config.EXPLICIT_WAIT):
-        """Найти все элементы по локатору"""
-        try:
-            elements = WebDriverWait(self.driver, timeout).until(
-                EC.presence_of_all_elements_located(locator)
-            )
-            return elements
-        except TimeoutException:
-            logger.error(f"Элементы не найдены: {locator}")
-            return []
-    
-    def click(self, locator: tuple, timeout=Config.EXPLICIT_WAIT):
-        """Кликнуть на элемент"""
-        try:
-            element = WebDriverWait(self.driver, timeout).until(
-                EC.element_to_be_clickable(locator)
-            )
-            self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", element)
-            time.sleep(0.3)
-            element.click()
-            logger.info(f"Клик на элемент: {locator}")
-        except Exception as e:
-            logger.error(f"Не удалось кликнуть на элемент {locator}: {e}")
-            AllureHelper.attach_screenshot(self.driver, "Ошибка_клика")
-            raise
-    
-    def input_text(self, locator: tuple, text: str, timeout=Config.EXPLICIT_WAIT):
-        """Ввести текст в поле"""
-        try:
-            element = self.find_element(locator, timeout)
-            element.clear()
-            element.send_keys(text)
-            logger.info(f"Ввод текста '{text}' в поле: {locator}")
-        except Exception as e:
-            logger.error(f"Не удалось ввести текст: {e}")
-            AllureHelper.attach_screenshot(self.driver, "Ошибка_ввода_текста")
-            raise
-    
-    def get_text(self, locator: tuple, timeout=Config.EXPLICIT_WAIT):
-        """Получить текст элемента"""
-        element = self.find_element(locator, timeout)
-        text = element.text
-        logger.info(f"Получен текст из {locator}: {text}")
-        return text
-    
-    def is_element_present(self, locator: tuple, timeout=5):
-        """Проверить наличие элемента на странице"""
-        try:
-            WebDriverWait(self.driver, timeout).until(
-                EC.presence_of_element_located(locator)
-            )
-            return True
         except:
-            return False
+            pass
     
-    def wait_for_element_visible(self, locator: tuple, timeout=Config.EXPLICIT_WAIT):
-        """Ожидать видимости элемента"""
+    def wait_for_element_clickable(self, locator, timeout=Config.EXPLICIT_WAIT):
+        """Ожидать, пока элемент станет кликабельным"""
+        return WebDriverWait(self.driver, timeout).until(EC.element_to_be_clickable(locator))
+    
+    def click(self, locator, timeout=Config.EXPLICIT_WAIT):
+        """Кликнуть на элемент"""
+        element = self.wait_for_element_clickable(locator, timeout)
+        self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", element)
+        element.click()
+        logger.info(f"Клик: {locator}")
+    
+    def find_element(self, locator, timeout=Config.EXPLICIT_WAIT):
+        """Найти элемент"""
+        return WebDriverWait(self.driver, timeout).until(EC.presence_of_element_located(locator))
+    
+    def find_elements(self, locator, timeout=Config.EXPLICIT_WAIT):
+        """Найти все элементы"""
+        return WebDriverWait(self.driver, timeout).until(EC.presence_of_all_elements_located(locator))
+    
+    def get_text(self, locator):
+        """Получить текст элемента"""
+        return self.find_element(locator).text
+    
+    def is_element_present(self, locator, timeout=2):
+        """Проверить наличие элемента"""
         try:
-            element = WebDriverWait(self.driver, timeout).until(
-                EC.visibility_of_element_located(locator)
-            )
-            logger.info(f"Элемент видим: {locator}")
-            return element
+            self.find_element(locator, timeout)
+            return True
         except TimeoutException:
-            logger.error(f"Элемент не стал видимым: {locator}")
-            AllureHelper.attach_screenshot(self.driver, "Ошибка_видимости")
-            raise
+            return False
