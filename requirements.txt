@@ -1,5 +1,0 @@
-selenium==4.41.0
-pytest==9.0.2
-allure-pytest==2.15.3
-webdriver-manager==4.0.2
-loguru==0.7.3

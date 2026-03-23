@@ -1,0 +1,6 @@
+"DESCRIPTION","DURATION IN MS","NAME","PARENT SUITE","START TIME","STATUS","STOP TIME","SUB SUITE","SUITE","TEST CLASS","TEST METHOD"
+"","46647","Добавление дивана в корзину","tests","2026-03-23","passed","2026-03-23","TestCart","test_cart","",""
+"","12816","Поиск товара по названию","tests","2026-03-23","passed","2026-03-23","TestSearch","test_search","",""
+"","18855","Фильтрация по цене и проверка наличия товара","tests","2026-03-23","passed","2026-03-23","TestFilter","test_filter","",""
+"","8966","Добавление товара в избранное","tests","2026-03-23","passed","2026-03-23","TestFavorites","test_favorites","",""
+"","26115","Проверка деталей товара в карточке","tests","2026-03-23","passed","2026-03-23","TestProductDetails","test_product_details","",""
